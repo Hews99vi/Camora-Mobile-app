@@ -1,0 +1,105 @@
+# Firestore Security Rules for Camora Mobile App
+# DEVELOPMENT MODE RULES - NOT FOR PRODUCTION USE
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.isAdmin == true || 
+              exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+              exists(/databases/$(database)/documents/admins/dev-926458388)); // Hard-coded admin@example.com hash
+    }
+    
+    function isDevMode() {
+      return true; // Always return true for development
+    }
+    
+    // For development and testing - completely open access
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Note: The rules below are NOT ACTIVE due to the rule above
+    // They are kept for reference when moving to production
+    
+    // Products collection - read for all, write for admin only
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin() || isDevMode();
+    }
+    
+    // Categories collection - read for all, write for admin
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin() || isDevMode();
+    }
+    
+    // Orders collection
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+                      resource.data.userId == request.auth.uid || 
+                      isAdmin()
+                    );
+      allow delete: if isAdmin();
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && 
+                     (userId == request.auth.uid || isAdmin());
+      allow create, update: if isAuthenticated() && userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+    
+    // Admins collection - special access control
+    match /admins/{userId} {
+      allow read, write: if isDevMode() || isAdmin();
+    }
+    
+    // Carts collection
+    match /carts/{userId} {
+      allow read, write: if isAuthenticated() && 
+                           (userId == request.auth.uid || isAdmin());
+    }
+    
+    // Wishlists collection
+    match /wishlists/{userId} {
+      allow read, write: if isAuthenticated() && 
+                           (userId == request.auth.uid || isAdmin());
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read, update: if isAuthenticated() && 
+                           resource.data.userId == request.auth.uid;
+      allow create, delete: if isAdmin();
+    }
+    
+    // Special dev admin access rule - grants direct access to dev admin ID
+    match /{collection}/{document=**} {
+      allow read, write: if isAuthenticated() && (
+        request.auth.uid == 'dev-926458388' || // admin@example.com hash ID
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+  }
+}
+
+# IMPORTANT NOTE:
+# These are DEVELOPMENT MODE rules with completely open access.
+# This is intentional to facilitate development without permission issues.
+# 
+# BEFORE DEPLOYING TO PRODUCTION:
+# 1. Remove the open access rule: match /{document=**} { allow read, write: if true; }
+# 2. Implement proper security rules based on the commented examples above
+# 3. Remove hard-coded admin IDs
+# 4. Remove the isDevMode() function or make it return false

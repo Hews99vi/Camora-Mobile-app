@@ -1,0 +1,30 @@
+# Flutter/Dart/Pub related
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+pubspec.lock  # Optional if you want to commit it; remove this line if needed
+
+# Android specific
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab
+*.dex
+
+# iOS specific
+ios/.generated/
+ios/Flutter/Debug.xcconfig
+ios/Flutter/Release.xcconfig
+ios/Flutter/AppFrameworkInfo.plist
+
+# Other ignores
+*.iml
+.idea/
+.DS_Store
+**/merged_native_libs/
+**/libffi*

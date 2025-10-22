@@ -1,0 +1,15 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/camora icon 300.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icons/camora icon 300.png"
+  web:
+    generate: true
+    image_path: "assets/icons/camora icon 300.png"
+    background_color: "#ffffff"
+    theme_color: "#000000"
+  windows:
+    generate: true
+    image_path: "assets/icons/camora icon 300.png"
+    icon_size: 48 # min:48, max:256, default: 48

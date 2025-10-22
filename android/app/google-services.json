@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "139171267033",
+    "project_id": "lenscart-mobile-app",
+    "storage_bucket": "lenscart-mobile-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:139171267033:android:35c5a7d70ce24539af19c8",
+        "android_client_info": {
+          "package_name": "com.lenscart.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYENV-2oGMBZNaIH7SukgO9AomevL_mOY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
