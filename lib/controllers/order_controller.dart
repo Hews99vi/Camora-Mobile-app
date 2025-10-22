@@ -1,10 +1,12 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
+import 'dart:async'; // Add this import for TimeoutException
 import '../models/order.dart';
 import '../models/cart_item.dart';
+import '../controllers/auth_controller.dart';
+import '../models/user.dart';
 
 class OrderController extends GetxController {
   final firestore.FirebaseFirestore _firestore = firestore.FirebaseFirestore.instance;
@@ -52,96 +54,117 @@ class OrderController extends GetxController {
     try {
       _isLoading.value = true;
       _error.value = '';
-
-      // Check if user is authenticated
-      final currentUser = FirebaseAuth.instance.currentUser;
+      
+      AuthController? authController;
+      try {
+        // Get the current user
+        authController = Get.find<AuthController>();
+      } catch (e) {
+        debugPrint('❌ AuthController not found: $e');
+        _error.value = 'Authentication service not available';
+        _isLoading.value = false;
+        return;
+      }
+      
+      final currentUser = authController.currentUser;
+      
+      // Simple check for admin - direct matching of known admin emails
+      final userEmail = currentUser?.email?.toLowerCase() ?? '';
+      final isAdminUser = userEmail == 'admin@example.com' || 
+                          userEmail == 'admin2@gmail.com' || 
+                          currentUser?.role == UserRole.admin;
+      
+      // If not logged in, show error
       if (currentUser == null) {
         _error.value = 'You must be logged in to view orders';
         _isLoading.value = false;
         return;
       }
-
-      // Check if the user is an admin by getting user data from Firestore
-      try {
-        final userDoc = await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .get();
-        
-        bool isAdmin = false;
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          isAdmin = userData['role'] == 'admin';
-        }
-
-        // Log admin status for debugging
-        debugPrint('User ${currentUser.uid} is admin: $isAdmin');
-
-        // If not admin, try to get user orders instead of all orders
-        if (!isAdmin) {
-          debugPrint('Non-admin user attempting to load all orders. Loading user orders instead.');
-          await loadUserOrders(currentUser.uid);
-          return;
-        }
-
-        // Admin user - proceed to get all orders
-        debugPrint('Admin user confirmed. Loading all orders.');
-        final querySnapshot = await _firestore
-            .collection('orders')
-            .orderBy('createdAt', descending: true)
-            .get();
-
-        final List<Order> orders = [];
-        
-        for (final doc in querySnapshot.docs) {
-          try {
-            final data = Map<String, dynamic>.from(doc.data() as Map);
-            data['id'] = doc.id;
-            
-            // Convert any integer timestamps to ISO8601 strings to ensure compatibility
-            if (data['createdAt'] is int) {
-              data['createdAt'] = DateTime.fromMillisecondsSinceEpoch(data['createdAt']).toIso8601String();
-            } else if (data['createdAt'] is firestore.Timestamp) {
-              data['createdAt'] = (data['createdAt'] as firestore.Timestamp).toDate().toIso8601String();
-            }
-            
-            if (data['updatedAt'] is int) {
-              data['updatedAt'] = DateTime.fromMillisecondsSinceEpoch(data['updatedAt']).toIso8601String();
-            } else if (data['updatedAt'] is firestore.Timestamp) {
-              data['updatedAt'] = (data['updatedAt'] as firestore.Timestamp).toDate().toIso8601String();
-            }
-            
-            final order = Order.fromJson(data);
-            orders.add(order);
-            debugPrint('Loaded order ${order.id} for admin view');
-          } catch (e) {
-            debugPrint('Error parsing order ${doc.id}: $e');
-            // Skip this order and continue with the next one
-          }
-        }
-
-        debugPrint('Successfully loaded ${orders.length} orders for admin');
-
-        // Sort locally by creation date
-        orders.sort((a, b) {
-          if (b.createdAt == null) return -1;
-          if (a.createdAt == null) return 1;
-          return b.createdAt!.compareTo(a.createdAt!);
-        });
-
-        _orders.value = orders;
-        
-      } catch (e) {
-        _error.value = 'Failed to verify admin status: $e';
-        debugPrint('Error checking admin status: $e');
+      
+      // Safety check for null ID
+      if (currentUser.id == null) {
+        _error.value = 'User ID not found';
         _isLoading.value = false;
+        return;
       }
+      
+      final currentUserId = currentUser.id!;
+      
+      debugPrint('👤 User: ${currentUser.email} (Admin: $isAdminUser)');
+      
+      // For admin users, load all orders
+      if (isAdminUser) {
+        debugPrint('🔐 Admin user detected: Loading all orders');
+        await _loadAllOrders();
+        return;
+      }
+      
+      // For regular users, only load their orders
+      debugPrint('👤 Regular user: Loading user-specific orders');
+      await loadUserOrders(currentUserId);
+
+      // This section has been simplified - admin check is now handled at the beginning of the method
       
     } catch (e) {
       _error.value = 'Failed to load orders: $e';
       debugPrint('Error loading orders: $e');
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  // Helper method to load all orders (for admin users)
+  Future<void> _loadAllOrders() async {
+    try {
+      // Directly fetch all orders
+      final querySnapshot = await _firestore
+          .collection('orders')
+          .orderBy('createdAt', descending: true)
+          .get()
+          .timeout(const Duration(seconds: 10));
+          
+      debugPrint('📊 Admin: Retrieved ${querySnapshot.docs.length} orders from Firestore');
+      
+      final List<Order> orders = [];
+      
+      for (final doc in querySnapshot.docs) {
+        try {
+          final data = Map<String, dynamic>.from(doc.data() as Map);
+          data['id'] = doc.id;
+          
+          // Convert any integer timestamps to ISO8601 strings
+          if (data['createdAt'] is int) {
+            data['createdAt'] = DateTime.fromMillisecondsSinceEpoch(data['createdAt']).toIso8601String();
+          } else if (data['createdAt'] is firestore.Timestamp) {
+            data['createdAt'] = (data['createdAt'] as firestore.Timestamp).toDate().toIso8601String();
+          }
+          
+          if (data['updatedAt'] is int) {
+            data['updatedAt'] = DateTime.fromMillisecondsSinceEpoch(data['updatedAt']).toIso8601String();
+          } else if (data['updatedAt'] is firestore.Timestamp) {
+            data['updatedAt'] = (data['updatedAt'] as firestore.Timestamp).toDate().toIso8601String();
+          }
+          
+          final order = Order.fromJson(data);
+          orders.add(order);
+        } catch (e) {
+          debugPrint('❌ Error parsing order ${doc.id}: $e');
+          // Skip this order and continue
+        }
+      }
+
+      // Sort locally by creation date
+      orders.sort((a, b) {
+        if (b.createdAt == null) return -1;
+        if (a.createdAt == null) return 1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
+
+      _orders.value = orders;
+      debugPrint('✅ Admin: Successfully loaded ${orders.length} orders');
+    } catch (e) {
+      _error.value = 'Failed to load orders: $e';
+      debugPrint('❌ Error loading admin orders: $e');
     }
   }
 

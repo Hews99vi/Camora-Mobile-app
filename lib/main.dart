@@ -17,7 +17,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'utils/logger.dart';
 import 'screens/web_responsive_example.dart';
-import 'widgets/app_logo.dart';
+// import 'widgets/app_logo.dart'; // Unused import
 import 'screens/admin/category_management_screen.dart';
 
 void main() async {

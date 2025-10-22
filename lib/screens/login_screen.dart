@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import 'main_screen.dart';
 import 'admin/admin_main_screen.dart';
 import 'signup_screen.dart';
+import 'debug_auth_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -440,6 +441,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+              // Debug section for development
+              const SizedBox(height: 16),
+              if (kDebugMode)
+                GestureDetector(
+                  onTap: () {
+                    Get.to(() => const DebugAuthScreen());
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.bug_report, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Debug Auth',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               // Testing section commented out for production
               // const SizedBox(height: 16),
               // 

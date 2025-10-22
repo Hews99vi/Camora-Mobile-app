@@ -161,6 +161,7 @@ class User {
   // Convert User to JSON for Firestore
   Map<String, dynamic> toJson() {
     return {
+      'id': id, // Include ID to ensure it's preserved in Firestore
       'email': email,
       'name': name,
       'phone': phone,

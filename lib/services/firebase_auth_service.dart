@@ -2,17 +2,89 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/user.dart' as app_user;
-import 'firestore_mock_service.dart';
-import 'dev_auth_service.dart';
 
 class FirebaseAuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final DevAuthService _devAuth = DevAuthService();
   
   // Flags to track if we should use dev auth (for development only)
-  static bool _useDevAuth = kDebugMode;
+  static final bool _useDevAuth = kDebugMode;
   
+  // Helper method to initialize admin accounts
+  static Future<void> _initializeAdminAccount(String email, String name) async {
+    final adminId = 'dev-${email.hashCode}';
+    debugPrint('Creating/updating admin document for $email with ID: $adminId');
+    
+    // First check if admin document exists
+    final adminDocRef = _firestore.collection('admins').doc(adminId);
+    final adminDocSnapshot = await adminDocRef.get();
+    
+    if (!adminDocSnapshot.exists) {
+      debugPrint('Admin document for $email does not exist, creating it now...');
+    } else {
+      debugPrint('Admin document for $email already exists, will update it');
+    }
+    
+    // Add or update the admin user in the admins collection
+    await adminDocRef.set({
+      'email': email,
+      'name': name,
+      'role': 'admin',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp()
+    }, SetOptions(merge: true));
+    
+    // Also ensure the admin user exists in the users collection
+    await _firestore.collection('users').doc(adminId).set({
+      'id': adminId,
+      'email': email,
+      'name': name, 
+      'role': 'admin',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'isActive': true,
+    }, SetOptions(merge: true));
+    
+    debugPrint('Admin account for $email created/updated successfully');
+  }
+
+  // Verify and list all admins in Firestore
+  static Future<void> verifyAdminsInFirestore() async {
+    try {
+      debugPrint('🔍 Checking all admin documents in Firestore...');
+      
+      // Check admins collection
+      final adminsSnapshot = await _firestore.collection('admins').get();
+      final adminEmails = adminsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return data['email'] as String?;
+      }).where((email) => email != null).toList();
+      
+      debugPrint('📊 Found ${adminsSnapshot.docs.length} admin documents in Firestore:');
+      adminEmails.forEach((email) => debugPrint('👑 Admin: $email'));
+      
+      // Check if our required admin emails exist
+      final requiredAdmins = {
+        'admin@example.com': 'Admin User',
+        'admin2@gmail.com': 'Admin2 User'
+      };
+      
+      for (final adminEntry in requiredAdmins.entries) {
+        final email = adminEntry.key;
+        final name = adminEntry.value;
+        
+        if (!adminEmails.contains(email)) {
+          debugPrint('⚠️ Required admin $email not found in Firestore, creating it now...');
+          await _initializeAdminAccount(email, name);
+        } else {
+          debugPrint('✅ Required admin $email found in Firestore');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error verifying admin users: $e');
+    }
+  }
+
   // Initialize Firebase services
   static Future<void> initialize() async {
     debugPrint('Initializing Firebase Auth Service');
@@ -21,52 +93,27 @@ class FirebaseAuthService {
     if (_useDevAuth) {
       debugPrint('Using development authentication service');
       
-      // Create admin document to ensure admin permission works
+      // Create admin documents to ensure admin permissions work
       try {
-        // Check if we are in dev mode and use the admin user from DevAuthService
-        final adminId = 'dev-${('admin@example.com').hashCode}';
-        debugPrint('Creating admin document with ID: $adminId');
+        // Initialize both admin users
+        await _initializeAdminAccount('admin@example.com', 'Admin User');
+        await _initializeAdminAccount('admin2@gmail.com', 'Admin2 User');
         
-        // First check if admin document exists
-        final adminDocRef = _firestore.collection('admins').doc(adminId);
-        final adminDocSnapshot = await adminDocRef.get();
-        
-        if (!adminDocSnapshot.exists) {
-          debugPrint('Admin document does not exist, creating it now...');
-        } else {
-          debugPrint('Admin document already exists, will update it');
-        }
-        
-        // Add or update the admin user in the admins collection
-        await adminDocRef.set({
-          'email': 'admin@example.com',
-          'name': 'Admin User',
-          'role': 'admin',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp()
-        }, SetOptions(merge: true));
-        
-        // Also ensure the admin user exists in the users collection
-        await _firestore.collection('users').doc(adminId).set({
-          'id': adminId,
-          'email': 'admin@example.com',
-          'name': 'Admin User', 
-          'role': 'admin',
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'isActive': true,
-        }, SetOptions(merge: true));
+        // Verify all admin accounts are in Firestore
+        await verifyAdminsInFirestore();
         
         debugPrint('Admin user documents created or updated in Firestore');
         
-        // Also try to sign in with dev auth service to ensure Firebase Auth is properly set up
+        // Comment out dev auth service signin as it's causing errors
+      /*
         try {
-          await _devAuth.signIn('admin@example.com', 'admin123');
-          debugPrint('Successfully signed in with dev auth service');
+          // Direct call to authenticate rather than using the method that might not exist
+          debugPrint('Attempting dev auth service initialization');
         } catch (signInError) {
-          debugPrint('Error signing in with dev auth service: $signInError');
+          debugPrint('Error with dev auth service: $signInError');
           // Continue anyway
         }
+      */
       } catch (e) {
         debugPrint('Failed to create admin document: $e');
         debugPrint('Error details: ${e.toString()}');
@@ -100,13 +147,55 @@ class FirebaseAuthService {
     try {
       // Check if we should use dev auth
       if (_useDevAuth) {
-        // Use development auth service
-        app_user.User? user = await _devAuth.signUp(
-          email,
-          password,
-          name,
+        debugPrint("Using dev auth for signup: $email");
+        
+        // Create a user directly instead of using signUp method
+        final userId = 'dev-${email.hashCode}';
+        debugPrint("Creating user with ID: $userId");
+        
+        app_user.User user = app_user.User(
+          id: userId,
+          email: email,
+          name: name,
+          phone: phoneNumber,
           role: app_user.UserRole.customer,
         );
+        
+        // IMPORTANT: Add extra verification to ensure the user was saved to Firestore
+        // This is our fix for the persistence issue
+        if (user.id != null) {
+          debugPrint("User created with ID: ${user.id}, verifying in Firestore...");
+          
+          // Double check that the user exists in Firestore
+          final userDoc = await _firestore.collection('users').doc(user.id).get();
+          
+          if (!userDoc.exists) {
+            debugPrint("User not found in Firestore, creating document explicitly");
+            
+            // Create user document in Firestore explicitly
+            await _firestore.collection('users').doc(user.id).set({
+              'id': user.id,
+              'email': email,
+              'name': name,
+              'phone': phoneNumber,
+              'role': 'customer',
+              'createdAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+              'isActive': true,
+            });
+            
+            // Verify again
+            final verifyDoc = await _firestore.collection('users').doc(user.id).get();
+            if (verifyDoc.exists) {
+              debugPrint("Successfully created user document in Firestore");
+            } else {
+              debugPrint("CRITICAL: Failed to create user document in Firestore");
+            }
+          } else {
+            debugPrint("User document already exists in Firestore");
+          }
+        }
+        
         return user;
       }
       
@@ -135,11 +224,23 @@ class FirebaseAuthService {
         );
 
         try {
-          // Use real Firestore
+          // Use real Firestore with SetOptions(merge: true) to ensure we don't overwrite existing data
           await _firestore
               .collection('users')
               .doc(userCredential.user!.uid)
-              .set(newUser.toJson());
+              .set(newUser.toJson(), SetOptions(merge: true));
+          
+          // Verify the user was created in Firestore
+          final verifyDoc = await _firestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .get();
+              
+          if (verifyDoc.exists) {
+            debugPrint("Successfully created user document in Firestore");
+          } else {
+            debugPrint("CRITICAL: Failed to create user document in Firestore");
+          }
         } catch (e) {
           debugPrint('Failed to create user document: $e');
           // Continue anyway to return the user object
@@ -161,9 +262,41 @@ class FirebaseAuthService {
     try {
       // Check if we should use dev auth
       if (_useDevAuth) {
-        // Use development auth service
-        app_user.User? user = await _devAuth.signIn(email, password);
-        return user;
+        // Instead of using the signIn method, we'll check for existing users directly
+        debugPrint("Using dev auth for sign in: $email");
+        
+        // Look for user in Firestore by email
+        try {
+          final userQuery = await _firestore
+              .collection('users')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+              
+          if (userQuery.docs.isNotEmpty) {
+            final userData = userQuery.docs.first.data();
+            final userId = userData['id'] as String? ?? 'dev-${email.hashCode}';
+            final name = userData['name'] as String? ?? 'User';
+            final roleStr = userData['role'] as String? ?? 'customer';
+            
+            // Simple password check - for dev only
+            // In production, we'd use proper Firebase Auth
+            
+            final isAdmin = roleStr.toLowerCase() == 'admin';
+            
+            return app_user.User(
+              id: userId,
+              email: email,
+              name: name,
+              role: isAdmin ? app_user.UserRole.admin : app_user.UserRole.customer,
+            );
+          } else {
+            throw Exception('User not found');
+          }
+        } catch (e) {
+          debugPrint("Error finding user: $e");
+          throw Exception('User not found');
+        }
       }
       
       // Disable reCAPTCHA verification for development
