@@ -375,7 +375,7 @@ This project is private and proprietary. All rights reserved.
 
 For questions, issues, or suggestions:
 
-- 📧 Email: support@camora.com
+- 📧 Email: nimanthavi@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/Hews99vi/Camora-Mobile-app/issues)
 - 💬 Discussions: [GitHub Discussions](https://github.com/Hews99vi/Camora-Mobile-app/discussions)
 
