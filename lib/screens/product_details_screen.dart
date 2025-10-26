@@ -71,8 +71,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           Obx(() {
             bool isInWishlist = _productController.isInWishlist(widget.product.id ?? '');
             return TextButton.icon(
-              onPressed: () {
-                _productController.toggleWishlist(widget.product.id ?? '');
+              onPressed: () async {
+                await _productController.toggleWishlist(widget.product.id ?? '');
+                // Force refresh UI
+                _productController.update(); // Update GetX state
+                setState(() {}); // Refresh the current screen
               },
               icon: Icon(
                 isInWishlist ? Icons.favorite : Icons.favorite_border,
@@ -207,8 +210,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               Obx(() {
                 bool isInWishlist = _productController.isInWishlist(widget.product.id ?? '');
                 return IconButton(
-                  onPressed: () {
-                    _productController.toggleWishlist(widget.product.id ?? '');
+                  onPressed: () async {
+                    await _productController.toggleWishlist(widget.product.id ?? '');
+                    // Force refresh UI
+                    _productController.update(); // Update GetX state
+                    setState(() {}); // Refresh the current screen
                   },
                   icon: Icon(
                     isInWishlist ? Icons.favorite : Icons.favorite_border,
@@ -392,7 +398,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           height: 56,
           child: ElevatedButton(
             onPressed: canAddToCart ? () {
-              print("Web layout: Buy Now pressed - navigating to checkout");
+              debugPrint("Web layout: Buy Now pressed - navigating to checkout");
               // Clear cart and add only this item for Buy Now
               _cartController.clearCart();
               _cartController.addToCart(
@@ -792,7 +798,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: canAddToCart ? () {
-                print("Buy Now pressed - navigating to checkout");
+                debugPrint("Buy Now pressed - navigating to checkout");
                 // Clear cart and add only this item for Buy Now
                 _cartController.clearCart();
                 _cartController.addToCart(

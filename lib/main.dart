@@ -10,8 +10,8 @@ import 'controllers/product_controller.dart';
 import 'controllers/cart_controller.dart';
 import 'controllers/order_controller.dart';
 import 'controllers/category_controller.dart';
+import 'controllers/chat_controller.dart';
 import 'services/stripe_service.dart';
-import 'services/tflite_model_service.dart';
 import 'services/firebase_auth_service.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -19,6 +19,7 @@ import 'utils/logger.dart';
 import 'screens/web_responsive_example.dart';
 // import 'widgets/app_logo.dart'; // Unused import
 import 'screens/admin/category_management_screen.dart';
+// ChatController is imported with other controllers
 
 void main() async {
   runZonedGuarded(() async {
@@ -51,7 +52,7 @@ void main() async {
         Logger.error('Firebase initialization failed', error: e);
         // Continue without Firebase in web for debugging
         if (!kIsWeb) {
-          rethrow;
+          throw Exception('Firebase initialization failed. Please check your configuration.');
         }
       }
       
@@ -82,26 +83,22 @@ void main() async {
         } catch (e) {
           Logger.error('Error initializing CategoryController', error: e);
         }
+        
+        // Initialize chat controller
+        try {
+          final chatController = ChatController();
+          Get.put(chatController);
+          Logger.info('ChatController initialized');
+        } catch (e) {
+          Logger.error('Error initializing ChatController', error: e);
+        }
+        
         Logger.info('Controllers initialized successfully');
       } catch (e) {
         Logger.error('Controller initialization failed', error: e);
         // Continue with minimal functionality
       }
       
-      // Initialize TFLite model (only on mobile platforms)
-      Logger.info('Initializing TFLite model');
-      try {
-        if (!kIsWeb) {
-          final modelService = TFLiteModelService();
-          await modelService.loadModel();
-          Logger.info('TFLite model initialized successfully');
-        } else {
-          Logger.info('Skipping TFLite model initialization on web');
-        }
-      } catch (e) {
-        Logger.error('TFLite model initialization failed', error: e);
-        // Continue without model - will use mock predictions
-      }
       
       Logger.info('App initialization completed, running app');
       runApp(const CamoraApp());

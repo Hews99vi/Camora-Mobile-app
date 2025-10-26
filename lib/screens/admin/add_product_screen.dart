@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../controllers/product_controller.dart';
 import '../../controllers/category_controller.dart';
 import '../../models/product.dart';
+import '../../services/storage_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   final Product? product;

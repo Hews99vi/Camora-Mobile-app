@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:get/get.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
 import '../controllers/product_controller.dart';
 
@@ -54,25 +54,71 @@ class ProductCard extends StatelessWidget {
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
-                      child: CachedNetworkImage(
-                        imageUrl: (product.images != null && product.images!.isNotEmpty) ? product.images![0] : '',
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: Colors.grey[100],
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Colors.grey[100],
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey[400],
-                            size: 40,
-                          ),
-                        ),
+                      child: Container(
+                        color: Colors.white,
+                        child: product.images?.isNotEmpty == true
+                            ? CachedNetworkImage(
+                                imageUrl: product.images![0],
+                                fit: BoxFit.contain,
+                                fadeInDuration: const Duration(milliseconds: 200),
+                                placeholder: (context, url) => Container(
+                                  color: Colors.white,
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.white,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.photo_library,
+                                          size: 40,
+                                          color: Colors.grey[300],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'No Image',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                color: Colors.white,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.photo_library,
+                                        size: 40,
+                                        color: Colors.grey[300],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'No Image',
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -102,8 +148,10 @@ class ProductCard extends StatelessWidget {
                             : Colors.grey[600],
                           size: 18,
                         ),
-                        onPressed: () {
-                          productController.toggleWishlist(product.id ?? '');
+                        onPressed: () async {
+                          await productController.toggleWishlist(product.id ?? '');
+                          // Force refresh UI
+                          productController.update();
                         },
                         padding: const EdgeInsets.all(4),
                         constraints: const BoxConstraints(

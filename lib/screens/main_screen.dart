@@ -5,6 +5,7 @@ import 'home_screen.dart';
 import 'categories_screen.dart';
 import 'wishlist_screen.dart';
 import 'profile_screen.dart';
+import 'chat_screen.dart';
 import '../controllers/product_controller.dart';
 import '../utils/responsive.dart';
 
@@ -19,6 +20,7 @@ class MainScreen extends StatelessWidget {
     const CategoriesScreen(),
     const WishlistScreen(),
     const ProfileScreen(),
+    const ChatScreen(),
   ];
 
   @override
@@ -119,6 +121,11 @@ class MainScreen extends StatelessWidget {
                 selectedIcon: Icon(Icons.person),
                 label: Text('Profile'),
               ),
+              const NavigationRailDestination(
+                icon: Icon(Icons.chat_bubble_outline),
+                selectedIcon: Icon(Icons.chat_bubble),
+                label: Text('Chat'),
+              ),
             ],
           )),
           
@@ -198,6 +205,10 @@ class MainScreen extends StatelessWidget {
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               label: 'Profile',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              label: 'Chat',
             ),
           ],
           onTap: (index) => _currentIndex.value = index,

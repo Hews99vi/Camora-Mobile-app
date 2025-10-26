@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../utils/debug_helper.dart';
 
 class DebugAuthScreen extends StatefulWidget {
-  const DebugAuthScreen({Key? key}) : super(key: key);
+  const DebugAuthScreen({super.key});
 
   @override
   State<DebugAuthScreen> createState() => _DebugAuthScreenState();

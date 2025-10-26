@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Expanded(
           flex: 3,
           child: Container(
-            color: Colors.black.withOpacity(0.9),
+            color: Colors.black.withValues(alpha: 0.9),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

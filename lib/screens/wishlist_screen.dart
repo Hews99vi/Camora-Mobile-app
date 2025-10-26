@@ -17,13 +17,42 @@ class _WishlistScreenState extends State<WishlistScreen> {
   @override
   void initState() {
     super.initState();
-    // Reload wishlist data when screen is opened
+    // Always completely reload wishlist data when screen is opened
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final ProductController productController = Get.find<ProductController>();
-      debugPrint('WishlistScreen: initState - forcing reload of wishlist data');
-      await productController.loadUserWishlist();
+      debugPrint('WishlistScreen: initState - forcing full reload of wishlist data');
+      
+      // Completely refresh both the wishlist IDs and products
+      await productController.loadProducts(); // Refresh all products first
+      await productController.loadUserWishlist(); // Then reload wishlist
+      
+      // Force UI updates
+      if (mounted) {
+        setState(() {});
+        productController.update();
+      }
+      
+      // Debug the wishlist state
+      productController.debugWishlistState();
       debugPrint('WishlistScreen: initState - wishlist reload completed');
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This ensures the wishlist is refreshed when returning to this screen
+    final ProductController productController = Get.find<ProductController>();
+    debugPrint('WishlistScreen: didChangeDependencies - refreshing wishlist');
+    productController.refreshWishlist();
+  }
+  
+  @override
+  void activate() {
+    super.activate();
+    // Additional refresh when screen is reactivated
+    final ProductController productController = Get.find<ProductController>();
+    productController.refreshWishlist();
   }
 
   @override
@@ -78,17 +107,36 @@ class _WishlistScreenState extends State<WishlistScreen> {
         ],
       ),
       body: Obx(() {
+        // Explicitly get the wishlist products from controller
         List<Product> wishlistProducts = productController.wishlistProducts;
         
-        // Debug logging
+        // Enhanced debug logging
         debugPrint('Wishlist screen - wishlist IDs: ${productController.wishlistIds}');
         debugPrint('Wishlist screen - all products count: ${productController.products.length}');
         debugPrint('Wishlist screen - wishlist products count: ${wishlistProducts.length}');
         
+        // Check each product in wishlist to verify IDs match
+        if (wishlistProducts.isNotEmpty) {
+          debugPrint('Wishlist products details:');
+          for (final product in wishlistProducts) {
+            debugPrint('  - ID: ${product.id}, Name: ${product.name}');
+            debugPrint('    Is in wishlist: ${productController.isInWishlist(product.id ?? '')}');
+          }
+        }
+        
+        // Force another wishlist refresh if coming from empty (defensive)
+        if (wishlistProducts.isEmpty && productController.wishlistIds.isNotEmpty) {
+          debugPrint('Inconsistent state detected - non-empty IDs but empty products');
+          // Schedule a refresh
+          Future.microtask(() => productController.refreshWishlist());
+        }
+        
+        // Show empty state if no products in wishlist
         if (wishlistProducts.isEmpty) {
           return _buildEmptyWishlist(context);
         }
         
+        // Show wishlist grid if we have products
         return _buildWishlistGrid(context, wishlistProducts, productController);
       }),
     );
@@ -289,8 +337,10 @@ class _WishlistScreenState extends State<WishlistScreen> {
                     top: 8,
                     right: 8,
                     child: GestureDetector(
-                      onTap: () {
-                        productController.toggleWishlist(product.id ?? '');
+                      onTap: () async {
+                        await productController.toggleWishlist(product.id ?? '');
+                        // Force refresh UI
+                        productController.update(); // Update GetX state
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),

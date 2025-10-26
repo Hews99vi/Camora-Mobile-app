@@ -61,7 +61,9 @@ class FirebaseAuthService {
       }).where((email) => email != null).toList();
       
       debugPrint('📊 Found ${adminsSnapshot.docs.length} admin documents in Firestore:');
-      adminEmails.forEach((email) => debugPrint('👑 Admin: $email'));
+      for (final email in adminEmails) {
+        debugPrint('👑 Admin: $email');
+      }
       
       // Check if our required admin emails exist
       final requiredAdmins = {

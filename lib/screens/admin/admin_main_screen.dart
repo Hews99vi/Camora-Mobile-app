@@ -6,6 +6,7 @@ import 'admin_dashboard_screen.dart';
 import 'admin_orders_screen.dart';
 import '../login_screen.dart';
 import 'category_management_screen.dart';
+import 'admin_chat_screen.dart';
 
 class AdminMainScreen extends StatelessWidget {
   const AdminMainScreen({super.key});
@@ -20,6 +21,7 @@ class AdminMainScreen extends StatelessWidget {
       const AdminProductsScreen(),
       const AdminOrdersScreen(),
       const CategoryManagementScreen(),
+      const AdminChatScreen(),
     ];
 
     return Scaffold(
@@ -60,6 +62,10 @@ class AdminMainScreen extends StatelessWidget {
             BottomNavigationBarItem(
               icon: Icon(Icons.category),
               label: 'Categories',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat),
+              label: 'Chat',
             ),
           ],
           onTap: (index) => currentIndex.value = index,

@@ -333,7 +333,7 @@ class OrderController extends GetxController {
 
     } catch (e) {
       _error.value = 'Failed to update order status: $e';
-      rethrow;
+      throw Exception('Failed to update order status: $e');
     }
   }
 
@@ -421,7 +421,7 @@ class OrderController extends GetxController {
 
     } catch (e) {
       _error.value = 'Failed to update tracking number: $e';
-      rethrow;
+      throw Exception('Failed to update tracking number: $e');
     }
   }
 
@@ -467,7 +467,7 @@ class OrderController extends GetxController {
 
     } catch (e) {
       _error.value = 'Failed to update order notes: $e';
-      rethrow;
+      throw Exception('Failed to update order notes: $e');
     }
   }
 
@@ -625,7 +625,7 @@ class OrderController extends GetxController {
 
     } catch (e) {
       _error.value = 'Failed to update order: $e';
-      rethrow; // Re-throw to let the UI handle the error
+      throw Exception('Failed to update order: $e'); // Let the UI handle the error
     }
   }
 }

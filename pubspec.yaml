@@ -1,5 +1,5 @@
-name: pinksmapmobile
-description: "A new Flutter project."
+name: camora
+description: "Camora - Camera & Accessories Shop"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -27,16 +27,13 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  crypto: ^3.0.3 # For password hashing in development mode
-  # TensorFlow Lite for Flutter - will be conditionally excluded for web
-  tflite_flutter: ^0.11.0
   image_picker: ^1.2.0  # For picking images from gallery/camera
-  image: ^4.0.17  # Image processing for TFLite
   get: ^4.6.6  # State management
   http: ^1.2.0  # API calls
   shared_preferences: ^2.2.2  # Local storage
   cached_network_image: ^3.3.1  # Image caching
   flutter_secure_storage: ^9.0.0  # Secure storage for auth tokens
+  intl: ^0.19.0  # For date formatting and localization
   smooth_page_indicator: ^1.1.0  # For page indicators
   badges: ^3.1.2  # For cart badge
   provider: ^6.1.1  # State management
@@ -52,7 +49,6 @@ dependencies:
   dio: ^5.4.0  # For API calls to your backend
   # Permissions
   permission_handler: ^11.3.0  # For handling permissions
-  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -73,7 +69,6 @@ flutter:
   uses-material-design: true
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/models/
     - assets/images/
     - assets/icons/
 

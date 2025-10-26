@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/search_controller.dart' as search_ctrl;
-import '../widgets/product_card.dart';
+import '../widgets/product_card_v2.dart';
 import '../utils/responsive.dart';
 import 'product_details_screen.dart';
 
@@ -274,7 +274,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final product = products[index];
-                        return ProductCard(
+                        return ProductCardV2(
                           product: product,
                           onTap: () {
                             Get.to(() => ProductDetailsScreen(product: product));

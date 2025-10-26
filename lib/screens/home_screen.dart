@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import '../models/product.dart';
-import '../widgets/product_card.dart';
+import '../widgets/product_card_v2.dart';
 import '../widgets/hero_carousel.dart';
 import '../widgets/best_selling_section.dart';
 import '../widgets/designer_categories_section.dart';
@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisSpacing: Responsive.isDesktop(context) ? 20 : 16,
                 childCount: filteredProducts.length,
                 itemBuilder: (context, index) {
-                  return ProductCard(
+                  return ProductCardV2(
                     product: filteredProducts[index],
                     onTap: () {
                       Get.to(() => ProductDetailsScreen(product: filteredProducts[index]));

@@ -64,8 +64,10 @@ class ProductCard extends StatelessWidget {
                   child: Obx(() {
                     bool isInWishlist = productController.isInWishlist(product.id ?? '');
                     return GestureDetector(
-                      onTap: () {
-                        productController.toggleWishlist(product.id ?? '');
+                      onTap: () async {
+                        await productController.toggleWishlist(product.id ?? '');
+                        // Force refresh UI
+                        productController.update();
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),

@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
@@ -27,13 +26,21 @@ class ProductController extends GetxController {
   
   // Make wishlist products reactive
   List<Product> get wishlistProducts {
-    final products = _products.where((product) => _wishlistIds.contains(product.id)).toList();
-    debugPrint('Getting wishlist products: ${products.length} products found for wishlist IDs: $_wishlistIds');
-    return products;
+    final List<Product> result = [];
+    
+    // Only include products whose IDs are explicitly in the wishlist
+    for (final product in _products) {
+      if (product.id != null && _wishlistIds.contains(product.id)) {
+        result.add(product);
+      }
+    }
+    
+    debugPrint('Getting wishlist products: ${result.length} products found for wishlist IDs: $_wishlistIds');
+    return result;
   }
   
-  int get cartItemCount => _cartItems.fold(0, (sum, item) => sum + (item.quantity ?? 0));
-  double get cartTotal => _cartItems.fold(0.0, (sum, item) => sum + ((item.price ?? 0.0) * (item.quantity ?? 0)));
+  int get cartItemCount => _cartItems.fold(0, (total, item) => total + (item.quantity ?? 0));
+  double get cartTotal => _cartItems.fold(0.0, (total, item) => total + ((item.price ?? 0.0) * (item.quantity ?? 0)));
   
   @override
   void onInit() {
@@ -138,8 +145,8 @@ class ProductController extends GetxController {
       debugPrint('Product: ${product.name} -> Category: ${product.category}');
     }
     debugPrint('Category distribution:');
-    categoryCount.forEach((category, count) {
-      debugPrint('  $category: $count products');
+    categoryCount.forEach((category, quantity) {
+      debugPrint('  $category: $quantity products');
     });
     debugPrint('===============================');
   }
@@ -383,9 +390,12 @@ class ProductController extends GetxController {
   
   Future<void> loadUserWishlist() async {
     final authController = Get.find<AuthController>();
+    // Clear wishlist IDs first to prevent stale data
+    _wishlistIds.clear();
+    
     if (authController.currentUser == null) {
       debugPrint('No user logged in, cannot load wishlist');
-      _wishlistIds.clear(); // Ensure wishlist is cleared when no user
+      update(); // Ensure UI updates even when clearing
       return;
     }
     
@@ -393,55 +403,90 @@ class ProductController extends GetxController {
       if (authController.currentUser?.id == null) {
         throw Exception("User ID is null");
       }
-      debugPrint('Loading wishlist for user: ${authController.currentUser!.id!} (${authController.currentUser!.email})');
-      List<String> wishlistIds = await FirebaseDbService.getUserWishlist(
-        authController.currentUser!.id!,
-      );
+      
+      final String userId = authController.currentUser!.id!;
+      debugPrint('Loading wishlist for user: $userId (${authController.currentUser!.email})');
+      
+      // Get wishlist from Firebase
+      List<String> wishlistIds = await FirebaseDbService.getUserWishlist(userId);
       debugPrint('Loaded ${wishlistIds.length} wishlist IDs from Firestore: $wishlistIds');
+      
+      // Validate IDs - only include non-empty product IDs
+      wishlistIds = wishlistIds.where((id) => id.isNotEmpty).toList();
+      
+      // Update our observable list with the fetched IDs
       _wishlistIds.assignAll(wishlistIds);
+      
       debugPrint('Current wishlist in controller after loading: $_wishlistIds');
+      
+      // Force UI update
+      update();
     } catch (e) {
       debugPrint('Error loading wishlist: $e');
       _wishlistIds.clear(); // Clear wishlist on error
+      update(); // Ensure UI updates even on error
     }
   }
   
   Future<void> toggleWishlist(String productId) async {
     final authController = Get.find<AuthController>();
+    
+    // Validate inputs
+    if (productId.isEmpty) {
+      debugPrint('Error: Cannot toggle wishlist for empty product ID');
+      return;
+    }
+    
     if (authController.currentUser == null) {
       Get.snackbar('Error', 'Please login to manage wishlist');
       return;
     }
     
+    if (authController.currentUser?.id == null) {
+      Get.snackbar('Error', 'User ID is missing. Please login again.');
+      return;
+    }
+    
+    final String userId = authController.currentUser!.id!;
+    
     try {
       debugPrint('Toggling wishlist for product: $productId');
-      debugPrint('User: ${authController.currentUser!.id} (${authController.currentUser!.email})');
+      debugPrint('User: $userId (${authController.currentUser!.email})');
       debugPrint('Current wishlist before toggle: $_wishlistIds');
       
-      if (authController.currentUser?.id == null) {
-        throw Exception("User ID is null");
-      }
+      // Check if the product is already in the wishlist
+      final bool wasInWishlist = _wishlistIds.contains(productId);
       
-      if (_wishlistIds.contains(productId)) {
-        await FirebaseDbService.removeFromWishlist(
-          authController.currentUser!.id!,
-          productId,
-        );
+      // Update Firebase first, then update local state only if Firebase succeeds
+      if (wasInWishlist) {
+        // Remove from Firebase
+        await FirebaseDbService.removeFromWishlist(userId, productId);
+        debugPrint('Removed from wishlist in Firebase');
+        
+        // Now update local state
         _wishlistIds.remove(productId);
-        debugPrint('Removed from wishlist. New list: $_wishlistIds');
+        debugPrint('Removed from local wishlist. New list: $_wishlistIds');
         Get.snackbar('Success', 'Item removed from wishlist');
       } else {
-        await FirebaseDbService.addToWishlist(
-          authController.currentUser!.id!,
-          productId,
-        );
+        // Add to Firebase
+        await FirebaseDbService.addToWishlist(userId, productId);
+        debugPrint('Added to wishlist in Firebase');
+        
+        // Now update local state
         _wishlistIds.add(productId);
-        debugPrint('Added to wishlist. New list: $_wishlistIds');
+        debugPrint('Added to local wishlist. New list: $_wishlistIds');
         Get.snackbar('Success', 'Item added to wishlist');
       }
+      
+      // Force UI update and debug
+      update();
+      debugWishlistState();
     } catch (e) {
       debugPrint('Error toggling wishlist: $e');
       Get.snackbar('Error', 'Failed to update wishlist');
+      
+      // Refresh wishlist from Firebase to ensure consistency
+      await loadUserWishlist();
     }
   }
   
@@ -449,10 +494,21 @@ class ProductController extends GetxController {
   Future<void> refreshWishlist() async {
     debugPrint('Force refreshing wishlist...');
     await loadUserWishlist();
+    // Also trigger a UI refresh
+    update();
+    debugWishlistState();
   }
 
   bool isInWishlist(String productId) {
-    return _wishlistIds.contains(productId);
+    // Simple direct check - is this specific ID in the wishlist IDs list?
+    if (productId.isEmpty) {
+      return false;
+    }
+    
+    // Important: only return true if this exact product ID is in the wishlist
+    final bool result = _wishlistIds.contains(productId);
+    debugPrint('isInWishlist check for product $productId: $result (wishlist: $_wishlistIds)');
+    return result;
   }
   
   /// Debug method to check current user and wishlist state
@@ -462,8 +518,28 @@ class ProductController extends GetxController {
     debugPrint('Current user: ${authController.currentUser?.email ?? 'None'}');
     debugPrint('Current user ID: ${authController.currentUser?.id ?? 'None'}');
     debugPrint('Wishlist IDs in controller: $_wishlistIds');
-    debugPrint('Wishlist products count: ${wishlistProducts.length}');
+    
+    // Debug individual products in wishlist
+    final wishlistItems = wishlistProducts;
+    debugPrint('Wishlist products count: ${wishlistItems.length}');
+    if (wishlistItems.isNotEmpty) {
+      debugPrint('Wishlist products:');
+      for (var product in wishlistItems) {
+        debugPrint('  - ID: ${product.id}, Name: ${product.name}');
+      }
+    }
+    
     debugPrint('Total products loaded: ${_products.length}');
+    
+    // Check if any product IDs are null or empty
+    final problemProducts = _products.where((p) => p.id == null || p.id!.isEmpty).toList();
+    if (problemProducts.isNotEmpty) {
+      debugPrint('WARNING: Found ${problemProducts.length} products with null or empty IDs');
+      for (var product in problemProducts) {
+        debugPrint('  - Problem product: ${product.name}');
+      }
+    }
+    
     debugPrint('============================');
   }
 

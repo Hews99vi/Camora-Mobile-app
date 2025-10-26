@@ -270,7 +270,7 @@ class FirebaseDbService {
           debugPrint('Firebase error code: ${docError.code}');
           debugPrint('Firebase error message: ${docError.message}');
         }
-        throw docError; // Re-throw to be caught by outer catch
+        rethrow; // Re-throw to be caught by outer catch
       }
     } catch (e) {
       debugPrint('Error adding category: $e');

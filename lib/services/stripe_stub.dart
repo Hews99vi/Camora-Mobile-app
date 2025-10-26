@@ -1,25 +1,27 @@
+import 'package:flutter/foundation.dart';
+
 // This is a stub implementation for platforms where flutter_stripe is not available
 // It mimics the flutter_stripe API but does nothing
 
 class Stripe {
   static set publishableKey(String key) {
     // Do nothing in stub
-    print('Stripe.publishableKey is not implemented in this build');
+    debugPrint('Stripe.publishableKey is not implemented in this build');
   }
   
   static set merchantIdentifier(String identifier) {
     // Do nothing in stub
-    print('Stripe.merchantIdentifier is not implemented in this build');
+    debugPrint('Stripe.merchantIdentifier is not implemented in this build');
   }
   
   static set stripeAccountId(String? accountId) {
     // Do nothing in stub
-    print('Stripe.stripeAccountId is not implemented in this build');
+    debugPrint('Stripe.stripeAccountId is not implemented in this build');
   }
   
   static set urlScheme(String? scheme) {
     // Do nothing in stub
-    print('Stripe.urlScheme is not implemented in this build');
+    debugPrint('Stripe.urlScheme is not implemented in this build');
   }
   
   static Future<void> instance() async {
@@ -29,23 +31,23 @@ class Stripe {
   
   static Future<void> createPaymentMethod({Map<String, dynamic>? params}) async {
     // Return a completed future that does nothing
-    print('Stripe.createPaymentMethod is not implemented in this build');
+    debugPrint('Stripe.createPaymentMethod is not implemented in this build');
     return;
   }
   
   // Add other commonly used methods to avoid runtime errors
   static Future<void> initPaymentSheet({required Map<String, dynamic> paymentSheetParameters}) async {
-    print('Stripe.initPaymentSheet is not implemented in this build');
+    debugPrint('Stripe.initPaymentSheet is not implemented in this build');
     return;
   }
   
   static Future<void> presentPaymentSheet() async {
-    print('Stripe.presentPaymentSheet is not implemented in this build');
+    debugPrint('Stripe.presentPaymentSheet is not implemented in this build');
     return;
   }
   
   static Future<void> confirmPaymentSheetPayment() async {
-    print('Stripe.confirmPaymentSheetPayment is not implemented in this build');
+    debugPrint('Stripe.confirmPaymentSheetPayment is not implemented in this build');
     return;
   }
 }

@@ -92,17 +92,27 @@ class ProductCard extends StatelessWidget {
                         ],
                       ),
                       child: IconButton(
-                        icon: Icon(
-                          productController.isInWishlist(product.id ?? '') 
-                            ? Icons.favorite 
-                            : Icons.favorite_border,
-                          color: productController.isInWishlist(product.id ?? '')
-                            ? Colors.red
-                            : Colors.grey[600],
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          productController.toggleWishlist(product.id ?? '');
+                        icon: Obx(() {
+                          // Re-evaluate wishlist status in real-time
+                          final bool isWishlisted = productController.isInWishlist(product.id ?? '');
+                          return Icon(
+                            isWishlisted ? Icons.favorite : Icons.favorite_border,
+                            color: isWishlisted ? Colors.red : Colors.grey[600],
+                            size: 20,
+                          );
+                        }),
+                        onPressed: () async {
+                          final String productId = product.id ?? '';
+                          if (productId.isEmpty) {
+                            Get.snackbar('Error', 'Cannot add product to wishlist');
+                            return;
+                          }
+                          
+                          debugPrint('Toggling wishlist for product: $productId');
+                          await productController.toggleWishlist(productId);
+                          
+                          // Force UI update
+                          productController.update();
                         },
                         padding: const EdgeInsets.all(4),
                         constraints: const BoxConstraints(
